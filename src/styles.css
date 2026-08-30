@@ -209,6 +209,14 @@
   visibility: hidden !important;
 }
 
+.instagram-mention {
+  color: rgb(var(--ig-colors-button-borderless-text));
+}
+
+.instagram-post {
+  --ig-colors-button-borderless-text: 112, 141, 255;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

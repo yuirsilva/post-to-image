@@ -36,6 +36,18 @@ interface InstagramPostProps {
   metrics: Metrics
 }
 
+function InstagramCaption({ text }: { text: string }) {
+  return text.split(/(@[A-Za-z0-9._]+)/g).map((part, index) =>
+    /^@[A-Za-z0-9._]+$/.test(part) ? (
+      <span className="instagram-mention" key={index}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  )
+}
+
 export function InstagramPost({ post, metrics }: InstagramPostProps) {
   return (
     <article className="social-post instagram-post bg-instagram-surface font-instagram leading-instagram text-instagram-text overflow-hidden text-sm">
@@ -107,7 +119,9 @@ export function InstagramPost({ post, metrics }: InstagramPostProps) {
           {post.verified && (
             <VerifiedIcon className="mr-1 mb-0.5 inline-block align-text-bottom" />
           )}
-          <span>{post.caption}</span>
+          <span>
+            <InstagramCaption text={post.caption} />
+          </span>
         </p>
         <time className="text-instagram-muted block text-xs leading-4">
           {post.date}

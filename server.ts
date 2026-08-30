@@ -77,6 +77,20 @@ interface VideoExportBody {
   url?: unknown
 }
 
+interface XUrlEntity {
+  url?: string
+  display_url?: string
+  expanded_url?: string
+}
+
+interface XEmbedResponse {
+  favorite_count?: number
+  conversation_count?: number
+  retweet_count?: number
+  text?: string
+  entities?: { urls?: XUrlEntity[] }
+}
+
 const app = express()
 const port = Number(process.env.PORT || 5173)
 const root = process.cwd()
@@ -203,6 +217,52 @@ function firstMatch(html: string, pattern: RegExp): string {
   return decodeJavaScriptString(html.match(pattern)?.[1] || '')
 }
 
+function expandXCaption(
+  text: string,
+  urls: XUrlEntity[] = [],
+  hasMedia = false,
+): string {
+  const expanded = urls.reduce((caption, entity) => {
+    if (!entity.url) return caption
+    return caption.replaceAll(
+      entity.url,
+      entity.display_url || entity.expanded_url || entity.url,
+    )
+  }, text)
+
+  return (
+    hasMedia
+      ? expanded.replace(/\s+https?:\/\/t\.co\/[A-Za-z0-9_]+\s*$/, '')
+      : expanded
+  ).trim()
+}
+
+function xViewCount(html: string, postId: string): string {
+  const tweetKey = Buffer.from(`Tweet:${postId}`).toString('base64')
+  const recordStart = html.indexOf(`"client:${tweetKey}:views"`)
+  if (recordStart < 0) return ''
+
+  const record = html.slice(recordStart, recordStart + 500)
+  const match = record.match(
+    /__typename:"ViewCountInfo",count:(?:"((?:\\.|[^"\\])*)"|null)/,
+  )
+  return match?.[1] === undefined ? '' : decodeJavaScriptString(match[1])
+}
+
+function isXPostMediaUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return (
+      /(^|\.)pbs\.twimg\.com$/i.test(url.hostname) &&
+      /^\/(?:media|ext_tw_video_thumb|amplify_video_thumb|tweet_video_thumb)\//i.test(
+        url.pathname,
+      )
+    )
+  } catch {
+    return false
+  }
+}
+
 function normalizeX(
   html: string,
   postId: string,
@@ -222,10 +282,11 @@ function normalizeX(
     /__typename:"UserAvatar",image_url:"((?:\\.|[^"\\])*)"/,
   ).replace('_normal.', '_400x400.')
   const fullText = firstMatch(html, /full_text:"((?:\\.|[^"\\])*)"/)
-  const caption = (fullText || meta(html, 'og:description'))
-    .replace(/\s*https?:\/\/t\.co\/[A-Za-z0-9_]+\s*$/, '')
-    .trim()
-  const image = meta(html, 'og:image')
+  const caption = (
+    fullText ? decodeHtml(fullText) : meta(html, 'og:description')
+  ).trim()
+  const imageCandidate = meta(html, 'og:image')
+  const image = isXPostMediaUrl(imageCandidate) ? imageCandidate : ''
   const unescapedHtml = html.replaceAll('\\/', '/')
   const videoUrls = Array.from(
     unescapedHtml.matchAll(
@@ -246,8 +307,6 @@ function normalizeX(
   const count = (name: string) =>
     firstMatch(html, new RegExp(`${name}:(\\d+)`)) || '0'
 
-  if (!image) throw new Error('X did not return media for this post.')
-
   return {
     platform: 'x',
     postId,
@@ -255,21 +314,17 @@ function normalizeX(
     name,
     avatar,
     image,
-    mediaType: videoUrl ? 'video' : 'image',
+    mediaType: image && videoUrl ? 'video' : 'image',
     videoDuration:
       Number(firstMatch(html, /duration_millis:(\d+)/)) / 1000 || 0,
-    videoUrl,
+    videoUrl: image ? videoUrl : '',
     location: '',
     caption,
     likes: count('favorite_count'),
     comments: count('reply_count'),
     reposts: count('retweet_count'),
     bookmarks: count('bookmark_count'),
-    views:
-      firstMatch(
-        html,
-        /__typename:"ViewCountInfo",count:"((?:\\.|[^"\\])*)"/,
-      ) || '',
+    views: xViewCount(html, postId),
     date: '',
     createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
     verified:
@@ -310,15 +365,15 @@ async function loadXPost(url: string): Promise<ServerPost> {
       { headers: xHeaders(), redirect: 'follow' },
     )
     if (embedResponse.ok) {
-      const embed = (await embedResponse.json()) as Partial<
-        Record<
-          'favorite_count' | 'conversation_count' | 'retweet_count',
-          number
-        >
-      >
+      const embed = (await embedResponse.json()) as XEmbedResponse
       post.likes = String(embed.favorite_count ?? post.likes)
       post.comments = String(embed.conversation_count ?? post.comments)
       post.reposts = String(embed.retweet_count ?? post.reposts)
+      post.caption = expandXCaption(
+        embed.text ? decodeHtml(embed.text) : post.caption,
+        embed.entities?.urls,
+        Boolean(post.image),
+      )
     }
   } catch {
     // The post page remains the source of truth for the required media.

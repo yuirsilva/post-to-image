@@ -27,16 +27,28 @@ function formatViews(value: string) {
   return Number.isFinite(count) ? count.toLocaleString('en-US') : '0'
 }
 
+function hasCount(value: string) {
+  const count = Number(value.replace(/[^\d.-]/g, ''))
+  return Number.isFinite(count) && count > 0
+}
+
 function XCaption({ text }: { text: string }) {
-  return text.split(/(@[A-Za-z0-9_]+)/g).map((part, index) =>
-    /^@[A-Za-z0-9_]+$/.test(part) ? (
-      <span className="text-[#1d9bf0]" key={index}>
-        {part}
-      </span>
-    ) : (
-      part
-    ),
-  )
+  const linkedText =
+    /^(?:@[A-Za-z0-9_]+|(?:https?:\/\/|www\.)[^\s]+|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s]*)?)$/
+
+  return text
+    .split(
+      /(@[A-Za-z0-9_]+|(?:https?:\/\/|www\.)[^\s]+|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s]*)?)/g,
+    )
+    .map((part, index) =>
+      linkedText.test(part) ? (
+        <span className="text-[#1d9bf0]" key={index}>
+          {part}
+        </span>
+      ) : (
+        part
+      ),
+    )
 }
 
 const actions: Array<{
@@ -102,30 +114,32 @@ export function XPost({
         <XCaption text={post.caption} />
       </p>
 
-      <div
-        className={`relative overflow-hidden rounded-2xl border bg-black ${
-          isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
-        }`}
-        data-video-media={post.mediaType === 'video' ? '' : undefined}
-      >
-        <img
-          alt={`${post.mediaType === 'video' ? 'Video poster' : 'Post image'} by ${post.username}`}
-          className="block h-auto max-h-136 w-full object-cover"
-          crossOrigin="anonymous"
-          src={post.image}
-        />
-        {post.mediaType === 'video' && (
-          <span
-            aria-label="Video"
-            className="absolute inset-0 grid place-items-center"
-            role="img"
-          >
-            <span className="grid size-14 place-items-center rounded-full bg-[#1d9bf0] text-white shadow-lg">
-              <PlayIcon size={27} weight="fill" />
+      {post.image ? (
+        <div
+          className={`relative overflow-hidden rounded-2xl border bg-black ${
+            isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
+          }`}
+          data-video-media={post.mediaType === 'video' ? '' : undefined}
+        >
+          <img
+            alt={`${post.mediaType === 'video' ? 'Video poster' : 'Post image'} by ${post.username}`}
+            className="block h-auto max-h-136 w-full object-cover"
+            crossOrigin="anonymous"
+            src={post.image}
+          />
+          {post.mediaType === 'video' ? (
+            <span
+              aria-label="Video"
+              className="absolute inset-0 grid place-items-center"
+              role="img"
+            >
+              <span className="grid size-14 place-items-center rounded-full bg-[#1d9bf0] text-white shadow-lg">
+                <PlayIcon size={27} weight="fill" />
+              </span>
             </span>
-          </span>
-        )}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div
         className={`mt-4 text-[15px] leading-5 ${isDark ? 'text-[#71767b]' : 'text-[#536471]'}`}
@@ -138,7 +152,7 @@ export function XPost({
         ) : (
           <time>{post.date}</time>
         )}
-        {metrics.views && post.views && (
+        {metrics.views && hasCount(post.views) && (
           <>
             {' · '}
             <strong className={isDark ? 'text-[#e7e9ea]' : 'text-black'}>
@@ -161,7 +175,7 @@ export function XPost({
             key={index}
           >
             <Icon />
-            {metric && metrics[metric] && (
+            {metric && metrics[metric] && hasCount(counts[metric]) && (
               <span className="text-[13px] leading-4">
                 {formatActionCount(counts[metric])}
               </span>
