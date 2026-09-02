@@ -66,6 +66,20 @@ interface ServerPost {
   date: string
   createdAt?: string
   verified: boolean
+  quotedPost?: XQuotedPost
+}
+
+interface XQuotedPost {
+  postId?: string
+  username: string
+  name: string
+  avatar: string
+  image: string
+  mediaType: 'image' | 'video'
+  caption: string
+  date: string
+  createdAt?: string
+  verified: boolean
 }
 
 interface VideoExportBody {
@@ -89,6 +103,77 @@ interface XEmbedResponse {
   retweet_count?: number
   text?: string
   entities?: { urls?: XUrlEntity[] }
+  quoted_tweet?: XEmbedQuotedTweet
+}
+
+interface XEmbedQuotedTweet {
+  id_str?: string
+  text?: string
+  created_at?: string
+  entities?: { urls?: XUrlEntity[] }
+  mediaDetails?: XGraphqlMedia[]
+  photos?: Array<{ url?: string }>
+  user?: {
+    name?: string
+    screen_name?: string
+    profile_image_url_https?: string
+    verified?: boolean
+    is_blue_verified?: boolean
+    verified_type?: string
+  }
+}
+
+interface XGraphqlMedia {
+  media_url_https?: string
+  type?: string
+  video_info?: {
+    duration_millis?: number
+    variants?: Array<{
+      bitrate?: number
+      content_type?: string
+      url?: string
+    }>
+  }
+}
+
+interface XGraphqlTweet {
+  __typename?: string
+  rest_id?: string
+  tweet?: XGraphqlTweet
+  quoted_status_result?: { result?: XGraphqlTweet }
+  core?: {
+    user_results?: {
+      result?: {
+        avatar?: { image_url?: string }
+        core?: { name?: string; screen_name?: string }
+        is_blue_verified?: boolean
+        legacy?: {
+          name?: string
+          profile_image_url_https?: string
+          screen_name?: string
+          verified?: boolean
+        }
+        verification?: { verified_type?: string }
+      }
+    }
+  }
+  legacy?: {
+    bookmark_count?: number
+    created_at?: string
+    entities?: { urls?: XUrlEntity[] }
+    extended_entities?: { media?: XGraphqlMedia[] }
+    favorite_count?: number
+    full_text?: string
+    reply_count?: number
+    retweet_count?: number
+  }
+  views?: { count?: string }
+}
+
+interface XClientConfig {
+  bearerToken: string
+  featureNames: string[]
+  queryId: string
 }
 
 const app = express()
@@ -221,12 +306,21 @@ function expandXCaption(
   text: string,
   urls: XUrlEntity[] = [],
   hasMedia = false,
+  quotedPostId = '',
 ): string {
   const expanded = urls.reduce((caption, entity) => {
     if (!entity.url) return caption
+    const isQuotedPostUrl = Boolean(
+      quotedPostId &&
+      entity.expanded_url?.match(
+        new RegExp(`/status/${quotedPostId}(?:[/?#]|$)`, 'i'),
+      ),
+    )
     return caption.replaceAll(
       entity.url,
-      entity.display_url || entity.expanded_url || entity.url,
+      isQuotedPostUrl
+        ? ''
+        : entity.display_url || entity.expanded_url || entity.url,
     )
   }, text)
 
@@ -235,6 +329,47 @@ function expandXCaption(
       ? expanded.replace(/\s+https?:\/\/t\.co\/[A-Za-z0-9_]+\s*$/, '')
       : expanded
   ).trim()
+}
+
+function xCreatedAt(value?: string): string | undefined {
+  if (!value) return undefined
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+}
+
+function normalizeXEmbedQuote(
+  quote: XEmbedQuotedTweet | undefined,
+): XQuotedPost | undefined {
+  if (!quote?.user) return undefined
+  const media = quote.mediaDetails?.[0]
+  const image = media?.media_url_https || quote.photos?.[0]?.url || ''
+
+  return {
+    postId: quote.id_str,
+    username: quote.user.screen_name || '',
+    name: quote.user.name || quote.user.screen_name || '',
+    avatar: (quote.user.profile_image_url_https || '').replace(
+      '_normal.',
+      '_400x400.',
+    ),
+    image,
+    mediaType:
+      media?.type === 'video' || media?.type === 'animated_gif'
+        ? 'video'
+        : 'image',
+    caption: expandXCaption(
+      decodeHtml(quote.text || ''),
+      quote.entities?.urls,
+      Boolean(image),
+    ),
+    date: '',
+    createdAt: xCreatedAt(quote.created_at),
+    verified: Boolean(
+      quote.user.verified ||
+      quote.user.is_blue_verified ||
+      quote.user.verified_type,
+    ),
+  }
 }
 
 function xViewCount(html: string, postId: string): string {
@@ -261,6 +396,195 @@ function isXPostMediaUrl(value: string): boolean {
   } catch {
     return false
   }
+}
+
+function isXLoginWall(html: string): boolean {
+  return /Age-restricted adult content|To view this media, you(?:'|&#39;|’)ll need to log in to X|This content might not be appropriate for people under 18/i.test(
+    html,
+  )
+}
+
+async function xClientConfig(html: string): Promise<XClientConfig> {
+  const mainScript = Array.from(
+    html.matchAll(/<script[^>]+src=["']([^"']+\/main\.[^"']+\.js)["']/gi),
+    (match) => decodeHtml(match[1]),
+  ).at(-1)
+  if (!mainScript)
+    throw new Error('X did not provide its authenticated client.')
+
+  const response = await fetch(mainScript, {
+    headers: xHeaders(),
+    redirect: 'follow',
+  })
+  if (!response.ok) throw new Error(`X client returned ${response.status}.`)
+  const javascript = await response.text()
+  const operationAt = javascript.indexOf('operationName:"TweetResultByRestId"')
+  if (operationAt < 0)
+    throw new Error('X did not provide its post lookup operation.')
+  const operationStart = javascript.lastIndexOf('queryId:"', operationAt)
+  const operation = javascript.slice(operationStart, operationAt + 16000)
+  const queryId = operation.match(/queryId:"([^"]+)"/)?.[1] || ''
+  const featureList = operation.match(/featureSwitches:\[([^\]]*)\]/)?.[1] || ''
+  const featureNames = Array.from(
+    featureList.matchAll(/"([^"]+)"/g),
+    (match) => match[1],
+  )
+  const encodedBearer = javascript.match(/"Bearer ([^"]+)"/)?.[1] || ''
+  const bearerToken = decodeURIComponent(encodedBearer)
+  if (!queryId || !bearerToken || !featureNames.length)
+    throw new Error('X returned incomplete authenticated client settings.')
+  return { bearerToken, featureNames, queryId }
+}
+
+function normalizeXGraphql(
+  result: XGraphqlTweet,
+  postId: string,
+  urlUsername: string,
+): ServerPost {
+  const tweet = result.tweet || result
+  const legacy = tweet.legacy
+  const user = tweet.core?.user_results?.result
+  const userCore = user?.core || user?.legacy
+  if (!legacy || !userCore)
+    throw new Error('X did not return the requested post.')
+
+  const media = legacy.extended_entities?.media?.[0]
+  const videoVariants = (media?.video_info?.variants || []).filter(
+    (variant) => variant.content_type === 'video/mp4' && variant.url,
+  )
+  const videoUrl =
+    videoVariants.sort(
+      (left, right) => (right.bitrate || 0) - (left.bitrate || 0),
+    )[0]?.url || ''
+  const image = media?.media_url_https || ''
+  const hasMedia = Boolean(image)
+  const createdAt = xCreatedAt(legacy.created_at)
+  const quotedResult = tweet.quoted_status_result?.result
+  const quotedPost = normalizeXGraphqlQuote(quotedResult)
+
+  return {
+    platform: 'x',
+    postId,
+    username: userCore.screen_name || urlUsername,
+    name: userCore.name || urlUsername,
+    avatar: (
+      user?.avatar?.image_url ||
+      user?.legacy?.profile_image_url_https ||
+      ''
+    ).replace('_normal.', '_400x400.'),
+    image,
+    mediaType:
+      media?.type === 'video' || media?.type === 'animated_gif'
+        ? 'video'
+        : 'image',
+    videoDuration: Number(media?.video_info?.duration_millis || 0) / 1000,
+    videoUrl,
+    location: '',
+    caption: expandXCaption(
+      decodeHtml(legacy.full_text || ''),
+      legacy.entities?.urls,
+      hasMedia,
+      quotedPost?.postId,
+    ),
+    likes: String(legacy.favorite_count || 0),
+    comments: String(legacy.reply_count || 0),
+    reposts: String(legacy.retweet_count || 0),
+    bookmarks: String(legacy.bookmark_count || 0),
+    views: String(tweet.views?.count || ''),
+    date: '',
+    createdAt,
+    verified:
+      Boolean(user?.is_blue_verified || user?.legacy?.verified) ||
+      Boolean(user?.verification?.verified_type),
+    quotedPost,
+  }
+}
+
+function normalizeXGraphqlQuote(
+  result: XGraphqlTweet | undefined,
+): XQuotedPost | undefined {
+  const tweet = result?.tweet || result
+  const legacy = tweet?.legacy
+  const user = tweet?.core?.user_results?.result
+  const userCore = user?.core || user?.legacy
+  if (!tweet || !legacy || !userCore) return undefined
+
+  const media = legacy.extended_entities?.media?.[0]
+  const image = media?.media_url_https || ''
+
+  return {
+    postId: tweet.rest_id,
+    username: userCore.screen_name || '',
+    name: userCore.name || userCore.screen_name || '',
+    avatar: (
+      user?.avatar?.image_url ||
+      user?.legacy?.profile_image_url_https ||
+      ''
+    ).replace('_normal.', '_400x400.'),
+    image,
+    mediaType:
+      media?.type === 'video' || media?.type === 'animated_gif'
+        ? 'video'
+        : 'image',
+    caption: expandXCaption(
+      decodeHtml(legacy.full_text || ''),
+      legacy.entities?.urls,
+      Boolean(image),
+    ),
+    date: '',
+    createdAt: xCreatedAt(legacy.created_at),
+    verified:
+      Boolean(user?.is_blue_verified || user?.legacy?.verified) ||
+      Boolean(user?.verification?.verified_type),
+  }
+}
+
+async function loadAuthenticatedXPost(
+  html: string,
+  postId: string,
+  username: string,
+): Promise<ServerPost> {
+  const cookie = process.env.X_COOKIE || ''
+  const csrfToken = cookie.match(/(?:^|;\s*)ct0=([^;]+)/)?.[1] || ''
+  if (!cookie || !csrfToken)
+    throw new Error('X requires a refreshed session cookie for this post.')
+
+  const client = await xClientConfig(html)
+  const variables = {
+    tweetId: postId,
+    withCommunity: false,
+    includePromotedContent: false,
+    withVoice: false,
+  }
+  const features = Object.fromEntries(
+    client.featureNames.map((name) => [name, false]),
+  )
+  const endpoint = new URL(
+    `https://x.com/i/api/graphql/${client.queryId}/TweetResultByRestId`,
+  )
+  endpoint.searchParams.set('variables', JSON.stringify(variables))
+  endpoint.searchParams.set('features', JSON.stringify(features))
+  const response = await fetch(endpoint, {
+    headers: {
+      ...xHeaders(true),
+      authorization: `Bearer ${client.bearerToken}`,
+      'content-type': 'application/json',
+      'x-csrf-token': csrfToken,
+      'x-twitter-active-user': 'yes',
+      'x-twitter-auth-type': 'OAuth2Session',
+      'x-twitter-client-language': 'en',
+    },
+    redirect: 'follow',
+  })
+  if (response.status === 401 || response.status === 403)
+    throw new Error('X requires a refreshed session cookie for this post.')
+  if (!response.ok) throw new Error(`X returned ${response.status}.`)
+  const payload = (await response.json()) as {
+    data?: { tweetResult?: { result?: XGraphqlTweet } }
+  }
+  const result = payload.data?.tweetResult?.result
+  if (!result) throw new Error('X did not return the requested post.')
+  return normalizeXGraphql(result, postId, username)
 }
 
 function normalizeX(
@@ -341,12 +665,20 @@ async function loadXPost(url: string): Promise<ServerPost> {
     redirect: 'follow',
   })
   let html = await upstream.text()
-  if ((!upstream.ok || !meta(html, 'og:image')) && process.env.X_COOKIE) {
+  const requiresAuthentication =
+    !upstream.ok || !meta(html, 'og:image') || isXLoginWall(html)
+  if (requiresAuthentication && !process.env.X_COOKIE)
+    throw new Error('X requires a session cookie for this post.')
+  if (requiresAuthentication) {
     upstream = await fetch(canonicalUrl, {
       headers: xHeaders(true),
       redirect: 'follow',
     })
     html = await upstream.text()
+    if (!upstream.ok) throw new Error(`X returned ${upstream.status}.`)
+    if (/\/i\/flow\/login/i.test(upstream.url))
+      throw new Error('X requires a refreshed session cookie for this post.')
+    return loadAuthenticatedXPost(html, postId, username)
   }
   if (!upstream.ok) throw new Error(`X returned ${upstream.status}.`)
   if (/\/i\/flow\/login/i.test(upstream.url))
@@ -369,11 +701,14 @@ async function loadXPost(url: string): Promise<ServerPost> {
       post.likes = String(embed.favorite_count ?? post.likes)
       post.comments = String(embed.conversation_count ?? post.comments)
       post.reposts = String(embed.retweet_count ?? post.reposts)
+      const quotedPost = normalizeXEmbedQuote(embed.quoted_tweet)
       post.caption = expandXCaption(
         embed.text ? decodeHtml(embed.text) : post.caption,
         embed.entities?.urls,
         Boolean(post.image),
+        quotedPost?.postId,
       )
+      post.quotedPost = quotedPost
     }
   } catch {
     // The post page remains the source of truth for the required media.
@@ -504,6 +839,25 @@ function runFfmpeg(argumentsList: string[]): Promise<void> {
   })
 }
 
+function openDefaultBrowser(url: string): void {
+  const [command, argumentsList] =
+    process.platform === 'win32'
+      ? ['cmd', ['/c', 'start', '', url]]
+      : process.platform === 'darwin'
+        ? ['open', [url]]
+        : ['xdg-open', [url]]
+  const browser = spawn(command, argumentsList, {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+  })
+
+  browser.on('error', (error) => {
+    console.warn(`Could not open the default browser: ${error.message}`)
+  })
+  browser.unref()
+}
+
 async function asDataUrl(
   url: string,
   headers: Record<string, string> = instagramHeaders(),
@@ -606,12 +960,21 @@ app.get('/api/x', async (request, response) => {
   try {
     const post = await loadXPost(String(request.query.url || ''))
     const headers = xHeaders()
-    const [image, avatar] = await Promise.all([
+    const [image, avatar, quotedImage, quotedAvatar] = await Promise.all([
       asDataUrl(post.image, headers),
       asDataUrl(post.avatar, headers),
+      asDataUrl(post.quotedPost?.image || '', headers),
+      asDataUrl(post.quotedPost?.avatar || '', headers),
     ])
     const { videoUrl: _videoUrl, ...publicPost } = post
-    response.json({ ...publicPost, image, avatar })
+    response.json({
+      ...publicPost,
+      image,
+      avatar,
+      quotedPost: post.quotedPost
+        ? { ...post.quotedPost, image: quotedImage, avatar: quotedAvatar }
+        : undefined,
+    })
   } catch (error) {
     response.status(400).json({
       error:
@@ -800,5 +1163,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.listen(port, '127.0.0.1', () => {
-  console.log(`Postcard is running at http://127.0.0.1:${port}`)
+  const url = `http://127.0.0.1:${port}`
+  console.log(`Postcard is running at ${url}`)
+  if (process.env.NODE_ENV !== 'production') openDefaultBrowser(url)
 })

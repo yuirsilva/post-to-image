@@ -37,15 +37,17 @@ interface InstagramPostProps {
 }
 
 function InstagramCaption({ text }: { text: string }) {
-  return text.split(/(@[A-Za-z0-9._]+)/g).map((part, index) =>
-    /^@[A-Za-z0-9._]+$/.test(part) ? (
-      <span className="instagram-mention" key={index}>
-        {part}
-      </span>
-    ) : (
-      part
-    ),
-  )
+  return text
+    .split(/((?<![A-Za-z0-9._%+-])@[A-Za-z0-9._]+)/g)
+    .map((part, index) =>
+      /^@[A-Za-z0-9._]+$/.test(part) ? (
+        <span className="instagram-mention" key={index}>
+          {part}
+        </span>
+      ) : (
+        part
+      ),
+    )
 }
 
 export function InstagramPost({ post, metrics }: InstagramPostProps) {

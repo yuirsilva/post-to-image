@@ -1,7 +1,13 @@
 import { PlayIcon } from '@phosphor-icons/react'
 import type { ComponentType } from 'react'
 import { formatActionCount } from '../lib/instagram'
-import type { MetricName, Metrics, SocialPostData, XAppearance } from '../types'
+import type {
+  MetricName,
+  Metrics,
+  QuotedPostData,
+  SocialPostData,
+  XAppearance,
+} from '../types'
 import {
   XBookmarkIcon,
   XLikeIcon,
@@ -21,6 +27,10 @@ const xDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   year: 'numeric',
 })
+const xCaptionTokenPattern =
+  /((?<![A-Za-z0-9._%+-])@[A-Za-z0-9_]+|(?<![\p{L}\p{M}\p{N}_])#[\p{L}\p{M}\p{N}_]+|(?:https?:\/\/|www\.)[^\s]+|(?<![@A-Za-z0-9._%+-])(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s]*)?)/gu
+const xLinkedCaptionToken =
+  /^(?:@[A-Za-z0-9_]+|#[\p{L}\p{M}\p{N}_]+|(?:https?:\/\/|www\.)[^\s]+|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s]*)?)$/u
 
 function formatViews(value: string) {
   const count = Number(value.replace(/[^\d.-]/g, ''))
@@ -33,22 +43,80 @@ function hasCount(value: string) {
 }
 
 function XCaption({ text }: { text: string }) {
-  const linkedText =
-    /^(?:@[A-Za-z0-9_]+|(?:https?:\/\/|www\.)[^\s]+|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s]*)?)$/
+  return text.split(xCaptionTokenPattern).map((part, index) =>
+    xLinkedCaptionToken.test(part) ? (
+      <span className="text-[#1d9bf0]" key={index}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  )
+}
 
-  return text
-    .split(
-      /(@[A-Za-z0-9_]+|(?:https?:\/\/|www\.)[^\s]+|(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:\/[^\s]*)?)/g,
-    )
-    .map((part, index) =>
-      linkedText.test(part) ? (
-        <span className="text-[#1d9bf0]" key={index}>
-          {part}
-        </span>
-      ) : (
-        part
-      ),
-    )
+function XQuotedPost({
+  isDark,
+  post,
+}: {
+  isDark: boolean
+  post: QuotedPostData
+}) {
+  const createdAt = post.createdAt ? new Date(post.createdAt) : null
+  const hasTimestamp = createdAt && !Number.isNaN(createdAt.getTime())
+  const mutedText = isDark ? 'text-[#71767b]' : 'text-[#536471]'
+
+  return (
+    <section
+      aria-label={`Quoted post by ${post.name}`}
+      className={`mb-3 overflow-hidden rounded-2xl border ${
+        isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
+      }`}
+    >
+      <div className="px-3 pt-3 pb-3">
+        <header className="flex min-w-0 items-center gap-1">
+          {post.avatar ? (
+            <img
+              alt=""
+              className="mr-0.5 size-5 shrink-0 rounded-full object-cover"
+              crossOrigin="anonymous"
+              src={post.avatar}
+            />
+          ) : null}
+          <strong className="min-w-0 truncate font-bold">{post.name}</strong>
+          {post.verified ? <XVerifiedIcon className="shrink-0" /> : null}
+          <span className={`min-w-0 truncate ${mutedText}`}>
+            @{post.username}
+          </span>
+          {(hasTimestamp || post.date) && (
+            <span className={`shrink-0 ${mutedText}`}>
+              {' · '}
+              {hasTimestamp ? (
+                <time dateTime={post.createdAt}>
+                  {xDateFormatter.format(createdAt)}
+                </time>
+              ) : (
+                <time>{post.date}</time>
+              )}
+            </span>
+          )}
+        </header>
+        <p className="mt-1 text-[15px] leading-5 whitespace-pre-wrap">
+          <XCaption text={post.caption} />
+        </p>
+      </div>
+
+      {post.image ? (
+        <img
+          alt={`${post.mediaType === 'video' ? 'Video poster' : 'Post image'} by ${post.username}`}
+          className={`block max-h-96 w-full border-t object-cover ${
+            isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
+          }`}
+          crossOrigin="anonymous"
+          src={post.image}
+        />
+      ) : null}
+    </section>
+  )
 }
 
 const actions: Array<{
@@ -139,6 +207,10 @@ export function XPost({
             </span>
           ) : null}
         </div>
+      ) : null}
+
+      {post.quotedPost ? (
+        <XQuotedPost isDark={isDark} post={post.quotedPost} />
       ) : null}
 
       <div

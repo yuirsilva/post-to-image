@@ -8,6 +8,19 @@ export type ExportTheme = 'transparent' | 'paper' | 'ink' | 'coral'
 export type ExportQuality = 1 | 2 | 3
 export type LoadStatus = 'idle' | 'loading' | 'ready'
 
+export interface QuotedPostData {
+  postId?: string
+  username: string
+  name: string
+  avatar: string
+  image: string
+  mediaType: MediaType
+  caption: string
+  date: string
+  createdAt?: string
+  verified: boolean
+}
+
 export interface SocialPostData {
   platform: Platform
   postId?: string
@@ -28,6 +41,7 @@ export interface SocialPostData {
   date: string
   createdAt?: string
   verified: boolean
+  quotedPost?: QuotedPostData
 }
 
 export interface Dimensions {
