@@ -36,6 +36,8 @@ export default function App() {
   const [quality, setQuality] = useState<ExportQuality>(2)
   const [metrics, setMetrics] = useState<Metrics>(DEFAULT_METRICS)
   const [xAppearance, setXAppearance] = useState<XAppearance>('light')
+  const [useOriginalMediaRatio, setUseOriginalMediaRatio] = useState(true)
+  const [showParentPost, setShowParentPost] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloaded, setDownloaded] = useState(false)
@@ -71,7 +73,7 @@ export default function App() {
     updateBaseSize()
     observer.observe(exportNode)
     return () => observer.disconnect()
-  }, [post, status, theme, xAppearance])
+  }, [post, showParentPost, status, theme, xAppearance])
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -102,6 +104,7 @@ export default function App() {
       if (!response.ok)
         throw new Error(payload.error || 'Could not load this post.')
       setPost(payload)
+      setShowParentPost(false)
       setStatus('ready')
     } catch (requestError) {
       setStatus('idle')
@@ -117,6 +120,7 @@ export default function App() {
     setUrl('https://www.instagram.com/p/C-example/')
     setError('')
     setPost(samplePost)
+    setShowParentPost(false)
     setStatus('loading')
     window.setTimeout(() => setStatus('ready'), 500)
   }
@@ -248,6 +252,8 @@ export default function App() {
         status={status}
         url={url}
         xAppearance={xAppearance}
+        useOriginalMediaRatio={useOriginalMediaRatio}
+        showParentPost={showParentPost}
       />
 
       <AnimatePresence initial={false}>
@@ -265,12 +271,16 @@ export default function App() {
             onQualityChange={setQuality}
             onThemeChange={setTheme}
             onToggleMetric={toggleMetric}
+            onShowParentPostChange={setShowParentPost}
             outputSize={outputSize}
             post={post}
             quality={quality}
             theme={theme}
             xAppearance={xAppearance}
             onXAppearanceChange={setXAppearance}
+            onUseOriginalMediaRatioChange={setUseOriginalMediaRatio}
+            showParentPost={showParentPost}
+            useOriginalMediaRatio={useOriginalMediaRatio}
           />
         )}
       </AnimatePresence>
@@ -286,6 +296,8 @@ export default function App() {
             quality={quality}
             theme={theme}
             xAppearance={xAppearance}
+            useOriginalMediaRatio={useOriginalMediaRatio}
+            showParentPost={showParentPost}
           />
         )}
       </AnimatePresence>

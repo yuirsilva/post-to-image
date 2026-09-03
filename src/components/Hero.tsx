@@ -32,6 +32,8 @@ interface HeroProps {
   status: LoadStatus
   url: string
   xAppearance: XAppearance
+  showParentPost: boolean
+  useOriginalMediaRatio: boolean
 }
 
 export function Hero({
@@ -45,6 +47,8 @@ export function Hero({
   status,
   url,
   xAppearance,
+  showParentPost,
+  useOriginalMediaRatio,
 }: HeroProps) {
   return (
     <section
@@ -160,7 +164,13 @@ export function Hero({
         </div>
         <div className="border-line bg-board shadow-card relative -rotate-2 rounded-xl border p-6 sm:p-8">
           {post.platform === 'x' ? (
-            <XPost appearance={xAppearance} metrics={metrics} post={post} />
+            <XPost
+              appearance={xAppearance}
+              metrics={metrics}
+              post={post}
+              showParentPost={showParentPost}
+              useOriginalMediaRatio={useOriginalMediaRatio}
+            />
           ) : (
             <InstagramPost metrics={metrics} post={post} />
           )}

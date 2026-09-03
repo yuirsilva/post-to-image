@@ -26,12 +26,16 @@ export function EditorWorkspace({
   onQualityChange,
   onThemeChange,
   onToggleMetric,
+  onShowParentPostChange,
   outputSize,
   post,
   quality,
   theme,
   xAppearance,
   onXAppearanceChange,
+  onUseOriginalMediaRatioChange,
+  showParentPost,
+  useOriginalMediaRatio,
 }: {
   copied: boolean
   downloaded: boolean
@@ -44,12 +48,16 @@ export function EditorWorkspace({
   onQualityChange: (quality: ExportQuality) => void
   onThemeChange: (theme: ExportTheme) => void
   onToggleMetric: (name: MetricName) => void
+  onShowParentPostChange: (show: boolean) => void
   outputSize: Dimensions
   post: SocialPostData
   quality: ExportQuality
   theme: ExportTheme
   xAppearance: XAppearance
   onXAppearanceChange: (appearance: XAppearance) => void
+  onUseOriginalMediaRatioChange: (useOriginalRatio: boolean) => void
+  showParentPost: boolean
+  useOriginalMediaRatio: boolean
 }) {
   return (
     <motion.section
@@ -98,23 +106,30 @@ export function EditorWorkspace({
             post={post}
             theme={theme}
             xAppearance={xAppearance}
+            useOriginalMediaRatio={useOriginalMediaRatio}
+            showParentPost={showParentPost}
           />
         </div>
         <EditorControls
           downloaded={downloaded}
           isDownloading={isDownloading}
+          hasParentPost={Boolean(post.parentPost)}
           mediaType={post.mediaType}
           platform={post.platform}
           xAppearance={xAppearance}
           onXAppearanceChange={onXAppearanceChange}
+          onUseOriginalMediaRatioChange={onUseOriginalMediaRatioChange}
           metrics={metrics}
           onDownload={onDownload}
           onQualityChange={onQualityChange}
           onThemeChange={onThemeChange}
           onToggleMetric={onToggleMetric}
+          onShowParentPostChange={onShowParentPostChange}
           outputSize={outputSize}
           quality={quality}
           theme={theme}
+          showParentPost={showParentPost}
+          useOriginalMediaRatio={useOriginalMediaRatio}
         />
       </div>
     </motion.section>

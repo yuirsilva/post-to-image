@@ -42,6 +42,7 @@ export interface SocialPostData {
   createdAt?: string
   verified: boolean
   quotedPost?: QuotedPostData
+  parentPost?: QuotedPostData
 }
 
 export interface Dimensions {

@@ -25,10 +25,22 @@ interface ExportArtworkProps {
   theme: ExportTheme
   metrics: Metrics
   xAppearance: XAppearance
+  showParentPost?: boolean
+  useOriginalMediaRatio: boolean
 }
 
 export const ExportArtwork = forwardRef<HTMLDivElement, ExportArtworkProps>(
-  function ExportArtwork({ post, theme, metrics, xAppearance }, ref) {
+  function ExportArtwork(
+    {
+      post,
+      theme,
+      metrics,
+      xAppearance,
+      showParentPost,
+      useOriginalMediaRatio,
+    },
+    ref,
+  ) {
     const canvasClass =
       theme === 'transparent'
         ? 'w-export-content min-w-export-content p-0'
@@ -44,7 +56,13 @@ export const ExportArtwork = forwardRef<HTMLDivElement, ExportArtworkProps>(
         className={`export-canvas shadow-export [&_.social-post]:w-full ${canvasClass} ${themeClass}`}
       >
         {post.platform === 'x' ? (
-          <XPost appearance={xAppearance} metrics={metrics} post={post} />
+          <XPost
+            appearance={xAppearance}
+            metrics={metrics}
+            post={post}
+            showParentPost={showParentPost}
+            useOriginalMediaRatio={useOriginalMediaRatio}
+          />
         ) : (
           <InstagramPost metrics={metrics} post={post} />
         )}

@@ -54,11 +54,16 @@ export function EditorControls({
   platform,
   xAppearance,
   onXAppearanceChange,
+  onUseOriginalMediaRatioChange,
   metrics,
   onDownload,
   onQualityChange,
   onThemeChange,
   onToggleMetric,
+  hasParentPost,
+  onShowParentPostChange,
+  showParentPost,
+  useOriginalMediaRatio,
   outputSize,
   quality,
   theme,
@@ -69,11 +74,16 @@ export function EditorControls({
   platform: Platform
   xAppearance: XAppearance
   onXAppearanceChange: (appearance: XAppearance) => void
+  onUseOriginalMediaRatioChange: (useOriginalRatio: boolean) => void
   metrics: Metrics
   onDownload: () => void
   onQualityChange: (quality: ExportQuality) => void
   onThemeChange: (theme: ExportTheme) => void
   onToggleMetric: (name: MetricName) => void
+  hasParentPost: boolean
+  onShowParentPostChange: (show: boolean) => void
+  showParentPost: boolean
+  useOriginalMediaRatio: boolean
   outputSize: Dimensions
   quality: ExportQuality
   theme: ExportTheme
@@ -108,6 +118,38 @@ export function EditorControls({
           </div>
         </ControlGroup>
       )}
+
+      {platform === 'x' && hasParentPost ? (
+        <ControlGroup title="Conversation">
+          <label className="flex cursor-pointer items-center justify-between gap-4 text-sm font-semibold">
+            <span>Parent tweet</span>
+            <input
+              checked={showParentPost}
+              className="peer sr-only"
+              onChange={(event) => onShowParentPostChange(event.target.checked)}
+              type="checkbox"
+            />
+            <span className="bg-toggle after:shadow-toggle peer-checked:bg-brand relative h-5 w-9 rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4" />
+          </label>
+        </ControlGroup>
+      ) : null}
+
+      {platform === 'x' ? (
+        <ControlGroup title="Media">
+          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-sm font-semibold">
+            <span>Original aspect ratio</span>
+            <input
+              checked={useOriginalMediaRatio}
+              className="peer sr-only"
+              onChange={(event) =>
+                onUseOriginalMediaRatioChange(event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span className="bg-toggle after:shadow-toggle peer-focus-visible:outline-brand/30 peer-checked:bg-brand relative h-5 w-9 rounded-full transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-3 after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4" />
+          </label>
+        </ControlGroup>
+      ) : null}
 
       <ControlGroup title="Background">
         <div className="flex flex-wrap gap-3">
@@ -179,7 +221,7 @@ export function EditorControls({
         </div>
       </ControlGroup>
 
-      <div className="border-line-soft mt-auto grid gap-1 border-t pt-4">
+      <div className="mt-auto grid gap-1">
         <span className="text-muted text-xs">
           {isVideo ? 'MP4 output' : 'PNG output'}
         </span>

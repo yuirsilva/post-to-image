@@ -119,6 +119,71 @@ function XQuotedPost({
   )
 }
 
+function XParentPost({
+  isDark,
+  post,
+}: {
+  isDark: boolean
+  post: QuotedPostData
+}) {
+  const createdAt = post.createdAt ? new Date(post.createdAt) : null
+  const hasTimestamp = createdAt && !Number.isNaN(createdAt.getTime())
+  const mutedText = isDark ? 'text-[#71767b]' : 'text-[#536471]'
+  const borderColor = isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
+
+  return (
+    <section
+      aria-label={`Parent post by ${post.name}`}
+      className="flex gap-2.5"
+    >
+      <div className="flex w-10 shrink-0 flex-col items-center">
+        <img
+          alt=""
+          className="size-10 shrink-0 rounded-full object-cover"
+          crossOrigin="anonymous"
+          src={post.avatar}
+        />
+        <span
+          aria-hidden="true"
+          className={`mt-1.5 w-0.5 flex-1 border-l-2 ${borderColor}`}
+        />
+      </div>
+      <div className="min-w-0 flex-1 pb-3">
+        <header className="flex min-w-0 items-center gap-1">
+          <strong className="min-w-0 truncate font-bold">{post.name}</strong>
+          {post.verified ? <XVerifiedIcon className="shrink-0" /> : null}
+          <span className={`min-w-0 truncate ${mutedText}`}>
+            @{post.username}
+          </span>
+          {(hasTimestamp || post.date) && (
+            <span className={`shrink-0 ${mutedText}`}>
+              {' · '}
+              {hasTimestamp ? (
+                <time dateTime={post.createdAt}>
+                  {xDateFormatter.format(createdAt)}
+                </time>
+              ) : (
+                <time>{post.date}</time>
+              )}
+            </span>
+          )}
+        </header>
+        <p className="mt-0.5 text-[15px] leading-5 whitespace-pre-wrap">
+          <XCaption text={post.caption} />
+        </p>
+        {post.image ? (
+          <img
+            alt={`${post.mediaType === 'video' ? 'Video poster' : 'Post image'} by ${post.username}`}
+            className={`mt-3 block max-h-96 w-full rounded-2xl border object-cover ${borderColor}`}
+            crossOrigin="anonymous"
+            src={post.image}
+          />
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
 const actions: Array<{
   icon: ComponentType
   metric?: Exclude<MetricName, 'views'>
@@ -134,10 +199,14 @@ export function XPost({
   appearance,
   metrics,
   post,
+  showParentPost = false,
+  useOriginalMediaRatio = true,
 }: {
   appearance: XAppearance
   metrics: Metrics
   post: SocialPostData
+  showParentPost?: boolean
+  useOriginalMediaRatio?: boolean
 }) {
   const isDark = appearance === 'dark'
   const counts = {
@@ -155,6 +224,10 @@ export function XPost({
         isDark ? 'bg-black text-[#e7e9ea]' : 'bg-white text-black'
       }`}
     >
+      {showParentPost && post.parentPost ? (
+        <XParentPost isDark={isDark} post={post.parentPost} />
+      ) : null}
+
       <header className="flex items-start gap-2.5">
         <img
           alt=""
@@ -184,14 +257,18 @@ export function XPost({
 
       {post.image ? (
         <div
-          className={`relative overflow-hidden rounded-2xl border bg-black ${
-            isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
-          }`}
+          className={`relative max-w-full overflow-hidden rounded-2xl border bg-black ${
+            useOriginalMediaRatio ? 'w-fit' : 'w-full'
+          } ${isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'}`}
           data-video-media={post.mediaType === 'video' ? '' : undefined}
         >
           <img
             alt={`${post.mediaType === 'video' ? 'Video poster' : 'Post image'} by ${post.username}`}
-            className="block h-auto max-h-136 w-full object-cover"
+            className={`block h-auto max-h-136 max-w-full ${
+              useOriginalMediaRatio
+                ? 'w-auto object-contain'
+                : 'w-full object-cover'
+            }`}
             crossOrigin="anonymous"
             src={post.image}
           />

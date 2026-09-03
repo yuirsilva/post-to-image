@@ -18,6 +18,8 @@ export function PreviewModal({
   quality,
   theme,
   xAppearance,
+  showParentPost,
+  useOriginalMediaRatio,
 }: {
   metrics: Metrics
   onClose: () => void
@@ -26,6 +28,8 @@ export function PreviewModal({
   quality: ExportQuality
   theme: ExportTheme
   xAppearance: XAppearance
+  showParentPost: boolean
+  useOriginalMediaRatio: boolean
 }) {
   return (
     <motion.div
@@ -68,6 +72,8 @@ export function PreviewModal({
             post={post}
             theme={theme}
             xAppearance={xAppearance}
+            showParentPost={showParentPost}
+            useOriginalMediaRatio={useOriginalMediaRatio}
           />
         </motion.div>
       </div>

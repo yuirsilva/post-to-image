@@ -67,6 +67,7 @@ interface ServerPost {
   createdAt?: string
   verified: boolean
   quotedPost?: XQuotedPost
+  parentPost?: XQuotedPost
 }
 
 interface XQuotedPost {
@@ -98,12 +99,27 @@ interface XUrlEntity {
 }
 
 interface XEmbedResponse {
+  id_str?: string
   favorite_count?: number
   conversation_count?: number
   retweet_count?: number
+  created_at?: string
+  in_reply_to_status_id_str?: string
   text?: string
   entities?: { urls?: XUrlEntity[] }
+  mediaDetails?: XGraphqlMedia[]
+  photos?: Array<{ url?: string }>
+  user?: XEmbedUser
   quoted_tweet?: XEmbedQuotedTweet
+}
+
+interface XEmbedUser {
+  name?: string
+  screen_name?: string
+  profile_image_url_https?: string
+  verified?: boolean
+  is_blue_verified?: boolean
+  verified_type?: string
 }
 
 interface XEmbedQuotedTweet {
@@ -113,14 +129,7 @@ interface XEmbedQuotedTweet {
   entities?: { urls?: XUrlEntity[] }
   mediaDetails?: XGraphqlMedia[]
   photos?: Array<{ url?: string }>
-  user?: {
-    name?: string
-    screen_name?: string
-    profile_image_url_https?: string
-    verified?: boolean
-    is_blue_verified?: boolean
-    verified_type?: string
-  }
+  user?: XEmbedUser
 }
 
 interface XGraphqlMedia {
@@ -338,7 +347,7 @@ function xCreatedAt(value?: string): string | undefined {
 }
 
 function normalizeXEmbedQuote(
-  quote: XEmbedQuotedTweet | undefined,
+  quote: XEmbedQuotedTweet | XEmbedResponse | undefined,
 ): XQuotedPost | undefined {
   if (!quote?.user) return undefined
   const media = quote.mediaDetails?.[0]
@@ -369,6 +378,52 @@ function normalizeXEmbedQuote(
       quote.user.is_blue_verified ||
       quote.user.verified_type,
     ),
+  }
+}
+
+function xSyndicationToken(postId: string): string {
+  return ((Number(postId) / 1e15) * Math.PI)
+    .toString(36)
+    .replace(/(0+|\.)/g, '')
+}
+
+async function loadXSyndicationPost(
+  postId: string,
+): Promise<XEmbedResponse | undefined> {
+  const response = await fetch(
+    `https://cdn.syndication.twimg.com/tweet-result?id=${postId}&lang=en&token=${xSyndicationToken(postId)}`,
+    { headers: xHeaders(), redirect: 'follow' },
+  )
+  if (!response.ok) return undefined
+  return (await response.json()) as XEmbedResponse
+}
+
+async function enrichXPostFromSyndication(
+  post: ServerPost,
+  postId: string,
+): Promise<void> {
+  try {
+    const embed = await loadXSyndicationPost(postId)
+    if (!embed) return
+
+    post.likes = String(embed.favorite_count ?? post.likes)
+    post.comments = String(embed.conversation_count ?? post.comments)
+    post.reposts = String(embed.retweet_count ?? post.reposts)
+    const quotedPost = normalizeXEmbedQuote(embed.quoted_tweet)
+    post.caption = expandXCaption(
+      embed.text ? decodeHtml(embed.text) : post.caption,
+      embed.entities?.urls,
+      Boolean(post.image),
+      quotedPost?.postId,
+    )
+    post.quotedPost = quotedPost
+
+    if (embed.in_reply_to_status_id_str) {
+      const parent = await loadXSyndicationPost(embed.in_reply_to_status_id_str)
+      post.parentPost = normalizeXEmbedQuote(parent)
+    }
+  } catch {
+    // The post page remains the source of truth if enrichment is unavailable.
   }
 }
 
@@ -678,41 +733,18 @@ async function loadXPost(url: string): Promise<ServerPost> {
     if (!upstream.ok) throw new Error(`X returned ${upstream.status}.`)
     if (/\/i\/flow\/login/i.test(upstream.url))
       throw new Error('X requires a refreshed session cookie for this post.')
-    return loadAuthenticatedXPost(html, postId, username)
+    const post = await loadAuthenticatedXPost(html, postId, username)
+    await enrichXPostFromSyndication(post, postId)
+    return post
   }
   if (!upstream.ok) throw new Error(`X returned ${upstream.status}.`)
   if (/\/i\/flow\/login/i.test(upstream.url))
     throw new Error('X requires a refreshed session cookie for this post.')
   const post = normalizeX(html, postId, username)
 
-  // X's public embed payload carries the engagement values omitted from the
-  // server-rendered page. Treat it as enrichment so media loading still works
-  // if the embed service is unavailable.
-  try {
-    const token = ((Number(postId) / 1e15) * Math.PI)
-      .toString(36)
-      .replace(/(0+|\.)/g, '')
-    const embedResponse = await fetch(
-      `https://cdn.syndication.twimg.com/tweet-result?id=${postId}&lang=en&token=${token}`,
-      { headers: xHeaders(), redirect: 'follow' },
-    )
-    if (embedResponse.ok) {
-      const embed = (await embedResponse.json()) as XEmbedResponse
-      post.likes = String(embed.favorite_count ?? post.likes)
-      post.comments = String(embed.conversation_count ?? post.comments)
-      post.reposts = String(embed.retweet_count ?? post.reposts)
-      const quotedPost = normalizeXEmbedQuote(embed.quoted_tweet)
-      post.caption = expandXCaption(
-        embed.text ? decodeHtml(embed.text) : post.caption,
-        embed.entities?.urls,
-        Boolean(post.image),
-        quotedPost?.postId,
-      )
-      post.quotedPost = quotedPost
-    }
-  } catch {
-    // The post page remains the source of truth for the required media.
-  }
+  // X's embed payload carries reply context and engagement values omitted from
+  // the server-rendered page. It remains optional so core post loading is safe.
+  await enrichXPostFromSyndication(post, postId)
 
   return post
 }
@@ -960,11 +992,20 @@ app.get('/api/x', async (request, response) => {
   try {
     const post = await loadXPost(String(request.query.url || ''))
     const headers = xHeaders()
-    const [image, avatar, quotedImage, quotedAvatar] = await Promise.all([
+    const [
+      image,
+      avatar,
+      quotedImage,
+      quotedAvatar,
+      parentImage,
+      parentAvatar,
+    ] = await Promise.all([
       asDataUrl(post.image, headers),
       asDataUrl(post.avatar, headers),
       asDataUrl(post.quotedPost?.image || '', headers),
       asDataUrl(post.quotedPost?.avatar || '', headers),
+      asDataUrl(post.parentPost?.image || '', headers),
+      asDataUrl(post.parentPost?.avatar || '', headers),
     ])
     const { videoUrl: _videoUrl, ...publicPost } = post
     response.json({
@@ -973,6 +1014,9 @@ app.get('/api/x', async (request, response) => {
       avatar,
       quotedPost: post.quotedPost
         ? { ...post.quotedPost, image: quotedImage, avatar: quotedAvatar }
+        : undefined,
+      parentPost: post.parentPost
+        ? { ...post.parentPost, image: parentImage, avatar: parentAvatar }
         : undefined,
     })
   } catch (error) {
