@@ -199,12 +199,14 @@ export function XPost({
   appearance,
   metrics,
   post,
+  showCounts = true,
   showParentPost = false,
   useOriginalMediaRatio = true,
 }: {
   appearance: XAppearance
   metrics: Metrics
   post: SocialPostData
+  showCounts?: boolean
   showParentPost?: boolean
   useOriginalMediaRatio?: boolean
 }) {
@@ -291,7 +293,7 @@ export function XPost({
       ) : null}
 
       <div
-        className={`mt-4 text-[15px] leading-5 ${isDark ? 'text-[#71767b]' : 'text-[#536471]'}`}
+        className={`mt-4 text-[15px] leading-5 ${showCounts ? '' : 'mb-3'} ${isDark ? 'text-[#71767b]' : 'text-[#536471]'}`}
       >
         {hasTimestamp ? (
           <time dateTime={post.createdAt}>
@@ -301,7 +303,7 @@ export function XPost({
         ) : (
           <time>{post.date}</time>
         )}
-        {metrics.views && hasCount(post.views) && (
+        {showCounts && metrics.views && hasCount(post.views) && (
           <>
             {' · '}
             <strong className={isDark ? 'text-[#e7e9ea]' : 'text-black'}>
@@ -311,27 +313,29 @@ export function XPost({
           </>
         )}
       </div>
-      <div
-        className={`mt-4 flex h-10 items-center justify-between border-t ${
-          isDark
-            ? 'border-[#2f3336] text-[#71767b]'
-            : 'border-[#eff3f4] text-[#536471]'
-        }`}
-      >
-        {actions.map(({ icon: Icon, metric }, index) => (
-          <span
-            className="inline-flex min-w-10 items-center gap-1.5"
-            key={index}
-          >
-            <Icon />
-            {metric && metrics[metric] && hasCount(counts[metric]) && (
-              <span className="text-[13px] leading-4">
-                {formatActionCount(counts[metric])}
-              </span>
-            )}
-          </span>
-        ))}
-      </div>
+      {showCounts && (
+        <div
+          className={`mt-4 flex h-10 items-center justify-between border-t ${
+            isDark
+              ? 'border-[#2f3336] text-[#71767b]'
+              : 'border-[#eff3f4] text-[#536471]'
+          }`}
+        >
+          {actions.map(({ icon: Icon, metric }, index) => (
+            <span
+              className="inline-flex min-w-10 items-center gap-1.5"
+              key={index}
+            >
+              <Icon />
+              {metric && metrics[metric] && hasCount(counts[metric]) && (
+                <span className="text-[13px] leading-4">
+                  {formatActionCount(counts[metric])}
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
     </article>
   )
 }

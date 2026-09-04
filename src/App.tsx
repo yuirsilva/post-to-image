@@ -35,6 +35,7 @@ export default function App() {
   const [theme, setTheme] = useState<ExportTheme>('paper')
   const [quality, setQuality] = useState<ExportQuality>(2)
   const [metrics, setMetrics] = useState<Metrics>(DEFAULT_METRICS)
+  const [showCounts, setShowCounts] = useState(true)
   const [xAppearance, setXAppearance] = useState<XAppearance>('light')
   const [useOriginalMediaRatio, setUseOriginalMediaRatio] = useState(true)
   const [showParentPost, setShowParentPost] = useState(false)
@@ -249,6 +250,7 @@ export default function App() {
         onUseExample={useExample}
         post={post}
         quality={quality}
+        showCounts={showCounts}
         status={status}
         url={url}
         xAppearance={xAppearance}
@@ -269,12 +271,14 @@ export default function App() {
             onDownload={downloadImage}
             onFullscreen={() => setFullscreen(true)}
             onQualityChange={setQuality}
+            onShowCountsChange={setShowCounts}
             onThemeChange={setTheme}
             onToggleMetric={toggleMetric}
             onShowParentPostChange={setShowParentPost}
             outputSize={outputSize}
             post={post}
             quality={quality}
+            showCounts={showCounts}
             theme={theme}
             xAppearance={xAppearance}
             onXAppearanceChange={setXAppearance}
@@ -294,6 +298,7 @@ export default function App() {
             outputSize={outputSize}
             post={post}
             quality={quality}
+            showCounts={showCounts}
             theme={theme}
             xAppearance={xAppearance}
             useOriginalMediaRatio={useOriginalMediaRatio}

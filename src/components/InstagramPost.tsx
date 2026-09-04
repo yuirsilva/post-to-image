@@ -34,6 +34,7 @@ function Action({ count, icon, visible = false }: ActionProps) {
 interface InstagramPostProps {
   post: SocialPostData
   metrics: Metrics
+  showCounts?: boolean
 }
 
 function InstagramCaption({ text }: { text: string }) {
@@ -50,7 +51,11 @@ function InstagramCaption({ text }: { text: string }) {
     )
 }
 
-export function InstagramPost({ post, metrics }: InstagramPostProps) {
+export function InstagramPost({
+  post,
+  metrics,
+  showCounts = true,
+}: InstagramPostProps) {
   return (
     <article className="social-post instagram-post bg-instagram-surface font-instagram leading-instagram text-instagram-text overflow-hidden text-sm">
       <header className="bg-instagram-surface flex h-14 items-center gap-3 px-4 py-3">
@@ -94,27 +99,29 @@ export function InstagramPost({ post, metrics }: InstagramPostProps) {
       </div>
 
       <div className="bg-instagram-surface leading-instagram px-4 pt-1.5 pb-4 text-sm">
-        <div className="mb-1.5 flex h-10 items-center" aria-hidden="true">
-          <Action
-            count={post.likes}
-            icon={<LikeIcon />}
-            visible={metrics.likes}
-          />
-          <Action
-            count={post.comments}
-            icon={<CommentIcon />}
-            visible={metrics.comments}
-          />
-          <Action
-            count={post.reposts}
-            icon={<RepostIcon />}
-            visible={metrics.reposts}
-          />
-          <Action icon={<ShareIcon />} />
-          <span className="ml-auto inline-flex h-10 items-center">
-            <SaveIcon />
-          </span>
-        </div>
+        {showCounts && (
+          <div className="mb-1.5 flex h-10 items-center" aria-hidden="true">
+            <Action
+              count={post.likes}
+              icon={<LikeIcon />}
+              visible={metrics.likes}
+            />
+            <Action
+              count={post.comments}
+              icon={<CommentIcon />}
+              visible={metrics.comments}
+            />
+            <Action
+              count={post.reposts}
+              icon={<RepostIcon />}
+              visible={metrics.reposts}
+            />
+            <Action icon={<ShareIcon />} />
+            <span className="ml-auto inline-flex h-10 items-center">
+              <SaveIcon />
+            </span>
+          </div>
+        )}
 
         <p className="leading-instagram mb-2 line-clamp-2 overflow-hidden text-sm">
           <strong className="mr-1 font-semibold">{post.username}</strong>

@@ -58,6 +58,7 @@ export function EditorControls({
   metrics,
   onDownload,
   onQualityChange,
+  onShowCountsChange,
   onThemeChange,
   onToggleMetric,
   hasParentPost,
@@ -66,6 +67,7 @@ export function EditorControls({
   useOriginalMediaRatio,
   outputSize,
   quality,
+  showCounts,
   theme,
 }: {
   downloaded: boolean
@@ -78,6 +80,7 @@ export function EditorControls({
   metrics: Metrics
   onDownload: () => void
   onQualityChange: (quality: ExportQuality) => void
+  onShowCountsChange: (show: boolean) => void
   onThemeChange: (theme: ExportTheme) => void
   onToggleMetric: (name: MetricName) => void
   hasParentPost: boolean
@@ -86,6 +89,7 @@ export function EditorControls({
   useOriginalMediaRatio: boolean
   outputSize: Dimensions
   quality: ExportQuality
+  showCounts: boolean
   theme: ExportTheme
 }) {
   const isVideo = mediaType === 'video'
@@ -202,7 +206,20 @@ export function EditorControls({
       </ControlGroup>
 
       <ControlGroup title="Display counts">
-        <div className="grid gap-3">
+        <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-sm font-semibold">
+          <span>Show counts and icons</span>
+          <input
+            checked={showCounts}
+            className="peer sr-only"
+            onChange={(event) => onShowCountsChange(event.target.checked)}
+            type="checkbox"
+          />
+          <span className="bg-toggle after:shadow-toggle peer-focus-visible:outline-brand/30 peer-checked:bg-brand relative h-5 w-9 rounded-full transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-3 after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4" />
+        </label>
+        <fieldset
+          className="mt-3 grid gap-3 disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={!showCounts}
+        >
           {metricNames.map((name) => (
             <label
               className="flex cursor-pointer items-center justify-between gap-4 text-sm font-semibold"
@@ -218,7 +235,7 @@ export function EditorControls({
               <span className="bg-toggle after:shadow-toggle peer-checked:bg-brand relative h-5 w-9 rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4" />
             </label>
           ))}
-        </div>
+        </fieldset>
       </ControlGroup>
 
       <div className="mt-auto grid gap-1">

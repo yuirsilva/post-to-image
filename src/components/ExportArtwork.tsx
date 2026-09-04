@@ -24,6 +24,7 @@ interface ExportArtworkProps {
   post: SocialPostData
   theme: ExportTheme
   metrics: Metrics
+  showCounts: boolean
   xAppearance: XAppearance
   showParentPost?: boolean
   useOriginalMediaRatio: boolean
@@ -35,6 +36,7 @@ export const ExportArtwork = forwardRef<HTMLDivElement, ExportArtworkProps>(
       post,
       theme,
       metrics,
+      showCounts,
       xAppearance,
       showParentPost,
       useOriginalMediaRatio,
@@ -60,11 +62,16 @@ export const ExportArtwork = forwardRef<HTMLDivElement, ExportArtworkProps>(
             appearance={xAppearance}
             metrics={metrics}
             post={post}
+            showCounts={showCounts}
             showParentPost={showParentPost}
             useOriginalMediaRatio={useOriginalMediaRatio}
           />
         ) : (
-          <InstagramPost metrics={metrics} post={post} />
+          <InstagramPost
+            metrics={metrics}
+            post={post}
+            showCounts={showCounts}
+          />
         )}
       </div>
     )

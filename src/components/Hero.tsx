@@ -29,6 +29,7 @@ interface HeroProps {
   onUseExample: () => void
   post: SocialPostData
   quality: ExportQuality
+  showCounts: boolean
   status: LoadStatus
   url: string
   xAppearance: XAppearance
@@ -44,6 +45,7 @@ export function Hero({
   onUseExample,
   post,
   quality,
+  showCounts,
   status,
   url,
   xAppearance,
@@ -168,11 +170,16 @@ export function Hero({
               appearance={xAppearance}
               metrics={metrics}
               post={post}
+              showCounts={showCounts}
               showParentPost={showParentPost}
               useOriginalMediaRatio={useOriginalMediaRatio}
             />
           ) : (
-            <InstagramPost metrics={metrics} post={post} />
+            <InstagramPost
+              metrics={metrics}
+              post={post}
+              showCounts={showCounts}
+            />
           )}
         </div>
         <div className="border-line shadow-float absolute right-0 bottom-2.5 z-10 rotate-4 rounded-lg border bg-white px-3 py-2 text-xs font-bold">

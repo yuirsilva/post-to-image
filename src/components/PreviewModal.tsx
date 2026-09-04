@@ -16,6 +16,7 @@ export function PreviewModal({
   outputSize,
   post,
   quality,
+  showCounts,
   theme,
   xAppearance,
   showParentPost,
@@ -26,6 +27,7 @@ export function PreviewModal({
   outputSize: Dimensions
   post: SocialPostData
   quality: ExportQuality
+  showCounts: boolean
   theme: ExportTheme
   xAppearance: XAppearance
   showParentPost: boolean
@@ -70,6 +72,7 @@ export function PreviewModal({
           <ExportArtwork
             metrics={metrics}
             post={post}
+            showCounts={showCounts}
             theme={theme}
             xAppearance={xAppearance}
             showParentPost={showParentPost}

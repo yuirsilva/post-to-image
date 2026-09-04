@@ -24,12 +24,14 @@ export function EditorWorkspace({
   onDownload,
   onFullscreen,
   onQualityChange,
+  onShowCountsChange,
   onThemeChange,
   onToggleMetric,
   onShowParentPostChange,
   outputSize,
   post,
   quality,
+  showCounts,
   theme,
   xAppearance,
   onXAppearanceChange,
@@ -46,12 +48,14 @@ export function EditorWorkspace({
   onDownload: () => void
   onFullscreen: () => void
   onQualityChange: (quality: ExportQuality) => void
+  onShowCountsChange: (show: boolean) => void
   onThemeChange: (theme: ExportTheme) => void
   onToggleMetric: (name: MetricName) => void
   onShowParentPostChange: (show: boolean) => void
   outputSize: Dimensions
   post: SocialPostData
   quality: ExportQuality
+  showCounts: boolean
   theme: ExportTheme
   xAppearance: XAppearance
   onXAppearanceChange: (appearance: XAppearance) => void
@@ -104,6 +108,7 @@ export function EditorWorkspace({
             ref={exportRef}
             metrics={metrics}
             post={post}
+            showCounts={showCounts}
             theme={theme}
             xAppearance={xAppearance}
             useOriginalMediaRatio={useOriginalMediaRatio}
@@ -122,11 +127,13 @@ export function EditorWorkspace({
           metrics={metrics}
           onDownload={onDownload}
           onQualityChange={onQualityChange}
+          onShowCountsChange={onShowCountsChange}
           onThemeChange={onThemeChange}
           onToggleMetric={onToggleMetric}
           onShowParentPostChange={onShowParentPostChange}
           outputSize={outputSize}
           quality={quality}
+          showCounts={showCounts}
           theme={theme}
           showParentPost={showParentPost}
           useOriginalMediaRatio={useOriginalMediaRatio}
