@@ -248,9 +248,11 @@ export function XPost({
             @{post.username}
           </span>
         </div>
-        <span className={isDark ? 'text-[#71767b]' : 'text-[#536471]'}>
-          <XMoreIcon />
-        </span>
+        {showCounts && (
+          <span className={isDark ? 'text-[#71767b]' : 'text-[#536471]'}>
+            <XMoreIcon />
+          </span>
+        )}
       </header>
 
       <p className="mt-3 mb-3 text-[17px] leading-6 whitespace-pre-wrap">
