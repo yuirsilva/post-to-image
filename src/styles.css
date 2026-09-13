@@ -81,8 +81,10 @@
   --font-x: 'Chirp', -apple-system, BlinkMacSystemFont, sans-serif;
 
   --color-canvas: #f6f5f2;
+  --color-surface: #ffffff;
   --color-ink: #191918;
   --color-ink-soft: #343432;
+  --color-on-ink: #ffffff;
   --color-muted: #696864;
   --color-placeholder: #898782;
   --color-line: #d9d7d1;
@@ -115,6 +117,28 @@
   --shadow-export: 0 1.5rem 3.75rem rgb(36 34 30 / 20%);
   --shadow-modal: 0 1.5rem 5rem rgb(0 0 0 / 55%);
   --shadow-toggle: 0 0.0625rem 0.1875rem rgb(0 0 0 / 20%);
+}
+
+:root[data-theme='dark'] {
+  --color-canvas: #121211;
+  --color-surface: #1c1c1a;
+  --color-ink: #f3f1ec;
+  --color-ink-soft: #d8d5ce;
+  --color-on-ink: #171716;
+  --color-muted: #aaa8a1;
+  --color-placeholder: #898781;
+  --color-line: #393834;
+  --color-line-soft: #302f2c;
+  --color-field: #4b4943;
+  --color-board: #292824;
+  --color-toggle: #4a4944;
+  --color-brand: #ef684f;
+  --color-brand-hover: #fb765c;
+  --color-danger: #ff8b84;
+  --color-success: #7dce8e;
+  --shadow-panel: 0 0.875rem 2.5rem rgb(0 0 0 / 22%);
+  --shadow-float: 0 0.5rem 1.5rem rgb(0 0 0 / 28%);
+  --shadow-card: 0 1.75rem 4.375rem rgb(0 0 0 / 35%);
 }
 
 @layer base {
@@ -163,6 +187,12 @@
 
   .pressable:active:not(:disabled) {
     transform: scale(0.97);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .theme-toggle:hover {
+      @apply bg-board;
+    }
   }
 }
 

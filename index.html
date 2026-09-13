@@ -6,6 +6,24 @@
     <meta name="theme-color" content="#f6f5f2" />
     <meta name="description" content="Turn any public Instagram post into a polished, shareable image." />
     <title>Postcard | Instagram Post to Image</title>
+    <script>
+      ;(() => {
+        let theme = 'light'
+        try {
+          theme =
+            localStorage.getItem('postcard-theme') ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light')
+        } catch {}
+
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', theme === 'dark' ? '#121211' : '#f6f5f2')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,4 +1,4 @@
-import { ImagesSquareIcon } from '@phosphor-icons/react'
+import { ImagesSquareIcon, MoonIcon, SunIcon } from '@phosphor-icons/react'
 
 function Brand() {
   return (
@@ -14,10 +14,32 @@ function Brand() {
   )
 }
 
-export function SiteHeader() {
+export function SiteHeader({
+  onThemeChange,
+  theme,
+}: {
+  onThemeChange: () => void
+  theme: 'light' | 'dark'
+}) {
+  const isDark = theme === 'dark'
+
   return (
-    <header className="max-w-site border-line mx-auto flex h-19 w-full items-center border-b px-4 sm:px-6">
+    <header className="max-w-site border-line mx-auto flex h-19 w-full items-center justify-between border-b px-4 sm:px-6">
       <Brand />
+      <button
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        aria-pressed={isDark}
+        className="theme-toggle border-line bg-surface text-ink pressable grid size-11 place-items-center rounded-full border"
+        onClick={onThemeChange}
+        title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        type="button"
+      >
+        {isDark ? (
+          <SunIcon aria-hidden="true" size={20} weight="bold" />
+        ) : (
+          <MoonIcon aria-hidden="true" size={20} weight="bold" />
+        )}
+      </button>
     </header>
   )
 }

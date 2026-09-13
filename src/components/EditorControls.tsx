@@ -96,7 +96,7 @@ export function EditorControls({
   const metricNames = platform === 'x' ? xMetricNames : instagramMetricNames
 
   return (
-    <aside className="border-line flex flex-col rounded-xl border bg-white p-5 lg:min-h-64">
+    <aside className="border-line bg-surface flex flex-col rounded-xl border p-5 lg:min-h-64">
       {platform === 'x' && (
         <ControlGroup title="X appearance">
           <div
@@ -109,8 +109,8 @@ export function EditorControls({
                 aria-pressed={xAppearance === appearance}
                 className={`pressable h-11 rounded-lg border font-bold capitalize ${
                   xAppearance === appearance
-                    ? 'border-ink bg-ink text-white'
-                    : 'border-line text-muted bg-white'
+                    ? 'border-ink bg-ink text-on-ink'
+                    : 'border-line text-muted bg-surface'
                 }`}
                 key={appearance}
                 onClick={() => onXAppearanceChange(appearance)}
@@ -166,7 +166,7 @@ export function EditorControls({
                   key === 'transparent' ? label : `${label} background`
                 }
                 aria-pressed={theme === key}
-                className={`pressable swatch-${key} border-field relative grid size-12 place-items-center rounded-lg border ${key === 'paper' && platform === 'x' ? 'bg-white' : item.className} ${theme === key ? 'ring-brand ring-2 ring-offset-2' : ''}`}
+                className={`pressable swatch-${key} border-field relative grid size-12 place-items-center rounded-lg border ${key === 'paper' && platform === 'x' ? 'bg-white' : item.className} ${theme === key ? 'ring-brand ring-offset-surface ring-2 ring-offset-2' : ''}`}
                 key={key}
                 onClick={() => onThemeChange(key)}
                 title={label}
@@ -174,7 +174,7 @@ export function EditorControls({
               >
                 {theme === key && (
                   <CheckIcon
-                    className={key === 'ink' ? 'text-white' : 'text-ink'}
+                    className={key === 'ink' ? 'text-white' : 'text-black'}
                     size={18}
                     weight="bold"
                   />
@@ -194,7 +194,7 @@ export function EditorControls({
           {qualityOptions.map((value) => (
             <button
               aria-pressed={quality === value}
-              className={`pressable h-10 rounded-lg border font-bold ${quality === value ? 'border-ink bg-ink text-white' : 'border-line text-muted bg-white'}`}
+              className={`pressable h-10 rounded-lg border font-bold ${quality === value ? 'border-ink bg-ink text-on-ink' : 'border-line text-muted bg-surface'}`}
               key={value}
               onClick={() => onQualityChange(value)}
               type="button"

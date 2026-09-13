@@ -65,7 +65,7 @@ export function Hero({
         variants={entrance}
       >
         <p className="text-muted mb-6 flex items-center gap-2.5 text-xs font-semibold">
-          <span className="border-line text-ink rounded-full border bg-white px-2.5 py-1.5">
+          <span className="border-line text-ink bg-surface rounded-full border px-2.5 py-1.5">
             Free tool
           </span>
           No sign-up required
@@ -87,7 +87,7 @@ export function Hero({
             Instagram or X post URL
           </label>
           <div
-            className={`shadow-panel focus-within:border-brand focus-within:ring-brand/10 grid grid-cols-[auto_1fr] items-center gap-2.5 rounded-xl border bg-white py-2 pr-2 pl-4 transition-shadow focus-within:ring-4 sm:grid-cols-[auto_1fr_auto] ${error ? 'border-danger' : 'border-field'}`}
+            className={`shadow-panel focus-within:border-brand focus-within:ring-brand/10 bg-surface grid grid-cols-[auto_1fr] items-center gap-2.5 rounded-xl border py-2 pr-2 pl-4 transition-shadow focus-within:ring-4 sm:grid-cols-[auto_1fr_auto] ${error ? 'border-danger' : 'border-field'}`}
           >
             <LinkSimpleIcon
               aria-hidden="true"
@@ -107,7 +107,7 @@ export function Hero({
               aria-label={
                 status === 'loading' ? 'Loading social post' : 'Create image'
               }
-              className="pressable bg-ink hover:bg-ink-soft col-span-full inline-flex h-12 w-full items-center justify-center rounded-lg border-0 px-4.5 font-bold text-white transition-colors disabled:cursor-wait disabled:opacity-70 sm:col-span-1 sm:w-40"
+              className="pressable bg-ink hover:bg-ink-soft text-on-ink col-span-full inline-flex h-12 w-full items-center justify-center rounded-lg border-0 px-4.5 font-bold transition-colors disabled:cursor-wait disabled:opacity-70 sm:col-span-1 sm:w-40"
               disabled={status === 'loading'}
               type="submit"
             >
@@ -161,7 +161,7 @@ export function Hero({
           ease: [0.16, 1, 0.3, 1],
         }}
       >
-        <div className="border-line shadow-float absolute top-0 -left-1 z-10 -rotate-5 rounded-lg border bg-white px-3 py-2.5 text-xs font-bold lg:-left-6">
+        <div className="border-line bg-surface shadow-float absolute top-0 -left-1 z-10 -rotate-5 rounded-lg border px-3 py-2.5 text-xs font-bold lg:-left-6">
           The complete post
         </div>
         <div className="border-line bg-board shadow-card relative -rotate-2 rounded-xl border p-6 sm:p-8">
@@ -182,7 +182,7 @@ export function Hero({
             />
           )}
         </div>
-        <div className="border-line shadow-float absolute right-0 bottom-2.5 z-10 rotate-4 rounded-lg border bg-white px-3 py-2 text-xs font-bold">
+        <div className="border-line bg-surface shadow-float absolute right-0 bottom-2.5 z-10 rotate-4 rounded-lg border px-3 py-2 text-xs font-bold">
           {post.mediaType === 'video' ? 'MP4' : 'PNG'} · {quality}×
         </div>
       </motion.div>

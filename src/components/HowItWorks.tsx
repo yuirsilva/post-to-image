@@ -25,7 +25,7 @@ export function HowItWorks() {
             className="border-line grid grid-cols-[auto_1fr] gap-4 border-b py-6 first:pt-0"
             key={title}
           >
-            <span className="bg-ink grid size-8 place-items-center rounded-full text-xs font-bold text-white">
+            <span className="bg-ink text-on-ink grid size-8 place-items-center rounded-full text-xs font-bold">
               {index + 1}
             </span>
             <div>

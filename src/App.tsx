@@ -28,6 +28,8 @@ const DEFAULT_METRICS: Metrics = {
   views: true,
 }
 
+type AppTheme = 'light' | 'dark'
+
 export default function App() {
   const [url, setUrl] = useState('')
   const [status, setStatus] = useState<LoadStatus>('idle')
@@ -45,7 +47,24 @@ export default function App() {
   const [fullscreen, setFullscreen] = useState(false)
   const [post, setPost] = useState<SocialPostData>(samplePost)
   const [baseSize, setBaseSize] = useState({ width: 540, height: 707 })
+  const [appTheme, setAppTheme] = useState<AppTheme>(() =>
+    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+  )
   const exportRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = appTheme
+    document.documentElement.style.colorScheme = appTheme
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', appTheme === 'dark' ? '#121211' : '#f6f5f2')
+
+    try {
+      window.localStorage.setItem('postcard-theme', appTheme)
+    } catch {
+      // The selected theme still applies when storage is unavailable.
+    }
+  }, [appTheme])
 
   useEffect(() => {
     if (!fullscreen) return undefined
@@ -241,7 +260,12 @@ export default function App() {
 
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader
+        theme={appTheme}
+        onThemeChange={() =>
+          setAppTheme((current) => (current === 'light' ? 'dark' : 'light'))
+        }
+      />
       <Hero
         error={error}
         metrics={metrics}
