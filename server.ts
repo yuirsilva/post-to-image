@@ -335,7 +335,7 @@ function expandXCaption(
 
   return (
     hasMedia
-      ? expanded.replace(/\s+https?:\/\/t\.co\/[A-Za-z0-9_]+\s*$/, '')
+      ? expanded.replace(/(?:^|\s+)https?:\/\/t\.co\/[A-Za-z0-9_]+\s*$/, '')
       : expanded
   ).trim()
 }
@@ -378,6 +378,62 @@ function normalizeXEmbedQuote(
       quote.user.is_blue_verified ||
       quote.user.verified_type,
     ),
+  }
+}
+
+function normalizeXEmbed(
+  embed: XEmbedResponse,
+  postId: string,
+  urlUsername: string,
+): ServerPost | undefined {
+  if (!embed.user) return undefined
+
+  const media = embed.mediaDetails?.[0]
+  const image = media?.media_url_https || embed.photos?.[0]?.url || ''
+  const videoVariants = (media?.video_info?.variants || []).filter(
+    (variant) => variant.content_type === 'video/mp4' && variant.url,
+  )
+  const videoUrl =
+    videoVariants.sort(
+      (left, right) => (right.bitrate || 0) - (left.bitrate || 0),
+    )[0]?.url || ''
+
+  return {
+    platform: 'x',
+    postId: embed.id_str || postId,
+    username: embed.user.screen_name || urlUsername,
+    name: embed.user.name || embed.user.screen_name || urlUsername,
+    avatar: (embed.user.profile_image_url_https || '').replace(
+      '_normal.',
+      '_400x400.',
+    ),
+    image,
+    mediaType:
+      media?.type === 'video' || media?.type === 'animated_gif'
+        ? 'video'
+        : 'image',
+    videoDuration: Number(media?.video_info?.duration_millis || 0) / 1000,
+    videoUrl,
+    location: '',
+    caption: expandXCaption(
+      decodeHtml(embed.text || ''),
+      embed.entities?.urls,
+      Boolean(image),
+      embed.quoted_tweet?.id_str,
+    ),
+    likes: String(embed.favorite_count || 0),
+    comments: String(embed.conversation_count || 0),
+    reposts: String(embed.retweet_count || 0),
+    bookmarks: '0',
+    views: '',
+    date: '',
+    createdAt: xCreatedAt(embed.created_at),
+    verified: Boolean(
+      embed.user.verified ||
+      embed.user.is_blue_verified ||
+      embed.user.verified_type,
+    ),
+    quotedPost: normalizeXEmbedQuote(embed.quoted_tweet),
   }
 }
 
@@ -722,6 +778,16 @@ async function loadXPost(url: string): Promise<ServerPost> {
   let html = await upstream.text()
   const requiresAuthentication =
     !upstream.ok || !meta(html, 'og:image') || isXLoginWall(html)
+  if (requiresAuthentication) {
+    const embed = await loadXSyndicationPost(postId)
+    const publicPost = embed
+      ? normalizeXEmbed(embed, postId, username)
+      : undefined
+    if (publicPost) {
+      await enrichXPostFromSyndication(publicPost, postId)
+      return publicPost
+    }
+  }
   if (requiresAuthentication && !process.env.X_COOKIE)
     throw new Error('X requires a session cookie for this post.')
   if (requiresAuthentication) {
