@@ -8,7 +8,15 @@ export type ExportTheme = 'transparent' | 'paper' | 'ink' | 'coral'
 export type ExportQuality = 1 | 2 | 3
 export type LoadStatus = 'idle' | 'loading' | 'ready'
 
+export interface YouTubePreview {
+  url: string
+  title: string
+  description: string
+  image: string
+}
+
 export interface QuotedPostData {
+  linkPreview?: YouTubePreview
   postId?: string
   username: string
   name: string
@@ -22,6 +30,7 @@ export interface QuotedPostData {
 }
 
 export interface SocialPostData {
+  linkPreview?: YouTubePreview
   platform: Platform
   postId?: string
   shortcode?: string

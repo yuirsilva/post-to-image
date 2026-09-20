@@ -5,6 +5,8 @@ import { mkdtemp, readFile, rmdir, unlink, writeFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { enrichYouTubePreview, youtubeVideoId } from './src/lib/youtube'
+import type { YouTubePreview } from './src/types'
 
 interface InstagramUser {
   username?: string
@@ -46,6 +48,7 @@ interface InstagramNode {
 }
 
 interface ServerPost {
+  linkPreview?: YouTubePreview
   platform: 'instagram' | 'x'
   postId?: string
   shortcode?: string
@@ -71,6 +74,7 @@ interface ServerPost {
 }
 
 interface XQuotedPost {
+  linkPreview?: YouTubePreview
   postId?: string
   username: string
   name: string
@@ -329,7 +333,9 @@ function expandXCaption(
       entity.url,
       isQuotedPostUrl
         ? ''
-        : entity.display_url || entity.expanded_url || entity.url,
+        : youtubeVideoId(entity.expanded_url || '')
+          ? entity.expanded_url!
+          : entity.display_url || entity.expanded_url || entity.url,
     )
   }, text)
 
@@ -1057,6 +1063,11 @@ app.get('/api/instagram', async (request, response) => {
 app.get('/api/x', async (request, response) => {
   try {
     const post = await loadXPost(String(request.query.url || ''))
+    await Promise.all(
+      [post, post.quotedPost, post.parentPost].map((item) =>
+        item ? enrichYouTubePreview(item) : Promise.resolve(),
+      ),
+    )
     const headers = xHeaders()
     const [
       image,

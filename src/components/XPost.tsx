@@ -7,6 +7,7 @@ import type {
   QuotedPostData,
   SocialPostData,
   XAppearance,
+  YouTubePreview,
 } from '../types'
 import {
   XBookmarkIcon,
@@ -51,6 +52,71 @@ function XCaption({ text }: { text: string }) {
     ) : (
       part
     ),
+  )
+}
+
+function XLinkPreview({
+  preview,
+  isDark,
+}: {
+  preview: YouTubePreview
+  isDark: boolean
+}) {
+  const border = isDark ? 'border-[#2f3336]' : 'border-[#cfd9de]'
+  const muted = isDark ? 'text-[#71767b]' : 'text-[#536471]'
+  return (
+    <a
+      href={preview.url}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Watch ${preview.title} on YouTube`}
+      className={`my-3 flex min-w-0 overflow-hidden rounded-2xl border text-inherit no-underline ${border}`}
+    >
+      <span
+        className={`relative flex w-32.5 shrink-0 items-center border-r bg-black ${border}`}
+      >
+        <img
+          alt=""
+          src={preview.image}
+          className="aspect-square w-full object-cover"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 grid place-items-center"
+        >
+          <svg
+            viewBox="0 0 60 61"
+            aria-hidden="true"
+            width={60}
+            height={60}
+            className="size-15"
+          >
+            <g>
+              <circle
+                cx="30"
+                cy="30.4219"
+                fill="#333333"
+                opacity="0.8"
+                r="30"
+              />
+              <path
+                d="M22.2275 17.1971V43.6465L43.0304 30.4218L22.2275 17.1971Z"
+                fill="white"
+              />
+            </g>
+          </svg>
+        </span>
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-3 text-[15px] leading-5">
+        <span className={muted}>youtube.com</span>
+        <span className="line-clamp-2 wrap-break-word">{preview.title}</span>
+        {preview.description ? (
+          <span className={`line-clamp-2 wrap-break-word ${muted}`}>
+            {preview.description}
+          </span>
+        ) : null}
+      </span>
+    </a>
   )
 }
 
@@ -103,6 +169,9 @@ function XQuotedPost({
         <p className="mt-1 text-[15px] leading-5 whitespace-pre-wrap">
           <XCaption text={post.caption} />
         </p>
+        {post.linkPreview ? (
+          <XLinkPreview preview={post.linkPreview} isDark={isDark} />
+        ) : null}
       </div>
 
       {post.image ? (
@@ -171,6 +240,9 @@ function XParentPost({
         <p className="mt-0.5 text-[15px] leading-5 whitespace-pre-wrap">
           <XCaption text={post.caption} />
         </p>
+        {post.linkPreview ? (
+          <XLinkPreview preview={post.linkPreview} isDark={isDark} />
+        ) : null}
         {post.image ? (
           <img
             alt={`${post.mediaType === 'video' ? 'Video poster' : 'Post image'} by ${post.username}`}
@@ -258,6 +330,10 @@ export function XPost({
       <p className="mt-3 mb-3 text-[17px] leading-6 whitespace-pre-wrap">
         <XCaption text={post.caption} />
       </p>
+
+      {post.linkPreview ? (
+        <XLinkPreview preview={post.linkPreview} isDark={isDark} />
+      ) : null}
 
       {post.image ? (
         <div
