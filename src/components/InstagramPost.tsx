@@ -98,7 +98,7 @@ export function InstagramPost({
         )}
       </div>
 
-      <div className="bg-instagram-surface leading-instagram px-4 pt-1.5 pb-4 text-sm">
+      <div className={`bg-instagram-surface leading-instagram px-4 ${showCounts ? "pt-1.5" : "pt-4"} pb-4 text-sm`}>
         {showCounts && (
           <div className="mb-1.5 flex h-10 items-center" aria-hidden="true">
             <Action
@@ -123,7 +123,7 @@ export function InstagramPost({
           </div>
         )}
 
-        <p className="leading-instagram mb-2 line-clamp-2 overflow-hidden text-sm">
+        <p className="leading-instagram mb-2 text-sm">
           <strong className="mr-1 font-semibold">{post.username}</strong>
           {post.verified && (
             <VerifiedIcon className="mr-1 mb-0.5 inline-block align-text-bottom" />
