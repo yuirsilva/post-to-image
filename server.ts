@@ -471,6 +471,12 @@ async function enrichXPostFromSyndication(
     post.likes = String(embed.favorite_count ?? post.likes)
     post.comments = String(embed.conversation_count ?? post.comments)
     post.reposts = String(embed.retweet_count ?? post.reposts)
+    if (!post.avatar && embed.user?.profile_image_url_https) {
+      post.avatar = embed.user.profile_image_url_https.replace(
+        '_normal.',
+        '_400x400.',
+      )
+    }
     const quotedPost = normalizeXEmbedQuote(embed.quoted_tweet)
     post.caption = expandXCaption(
       embed.text ? decodeHtml(embed.text) : post.caption,
@@ -718,15 +724,17 @@ function normalizeX(
     titleMatch?.[1] || decodeJavaScriptString(userCore?.[1]) || urlUsername
   const username =
     titleMatch?.[2] || decodeJavaScriptString(userCore?.[2]) || urlUsername
-  const avatar = firstMatch(
-    html,
-    /__typename:"UserAvatar",image_url:"((?:\\.|[^"\\])*)"/,
+  const imageCandidate = meta(html, 'og:image')
+  const avatar = (
+    firstMatch(html, /__typename:"UserAvatar",image_url:"((?:\\.|[^"\\])*)"/) ||
+    (/^https:\/\/pbs\.twimg\.com\/profile_images\//i.test(imageCandidate)
+      ? imageCandidate
+      : '')
   ).replace('_normal.', '_400x400.')
   const fullText = firstMatch(html, /full_text:"((?:\\.|[^"\\])*)"/)
   const caption = (
     fullText ? decodeHtml(fullText) : meta(html, 'og:description')
   ).trim()
-  const imageCandidate = meta(html, 'og:image')
   const image = isXPostMediaUrl(imageCandidate) ? imageCandidate : ''
   const unescapedHtml = html.replaceAll('\\/', '/')
   const videoUrls = Array.from(
