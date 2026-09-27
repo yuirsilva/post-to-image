@@ -468,6 +468,18 @@ async function enrichXPostFromSyndication(
     const embed = await loadXSyndicationPost(postId)
     if (!embed) return
 
+    const media = embed.mediaDetails?.[0]
+    if (media) {
+      post.mediaType =
+        media.type === 'video' || media.type === 'animated_gif'
+          ? 'video'
+          : 'image'
+      if (post.mediaType === 'image') {
+        post.videoUrl = ''
+        post.videoDuration = 0
+      }
+    }
+
     post.likes = String(embed.favorite_count ?? post.likes)
     post.comments = String(embed.conversation_count ?? post.comments)
     post.reposts = String(embed.retweet_count ?? post.reposts)
@@ -505,6 +517,19 @@ function xViewCount(html: string, postId: string): string {
     /__typename:"ViewCountInfo",count:(?:"((?:\\.|[^"\\])*)"|null)/,
   )
   return match?.[1] === undefined ? '' : decodeJavaScriptString(match[1])
+}
+
+function xPrimaryMediaType(html: string, postId: string): string {
+  const tweetKey = Buffer.from(`Tweet:${postId}`).toString('base64')
+  const recordStart = html.indexOf(`"client:${tweetKey}:media_entities2:0":`)
+  if (recordStart < 0) return ''
+
+  const recordEnd = html.indexOf(',"client:', recordStart + 1)
+  const record = html.slice(
+    recordStart,
+    recordEnd < 0 ? recordStart + 4000 : recordEnd,
+  )
+  return record.match(/\btype:"(photo|video|animated_gif)"/)?.[1] || ''
 }
 
 function isXPostMediaUrl(value: string): boolean {
@@ -752,6 +777,10 @@ function normalizeX(
         Number(leftSize?.[1] || 0) * Number(leftSize?.[2] || 0)
       )
     })[0] || ''
+  const primaryMediaType = xPrimaryMediaType(html, postId)
+  const isVideo =
+    (primaryMediaType === 'video' || primaryMediaType === 'animated_gif') &&
+    Boolean(videoUrl)
   const createdAt = Number(firstMatch(html, /created_at_ms:(\d+)/))
   const count = (name: string) =>
     firstMatch(html, new RegExp(`${name}:(\\d+)`)) || '0'
@@ -763,10 +792,11 @@ function normalizeX(
     name,
     avatar,
     image,
-    mediaType: image && videoUrl ? 'video' : 'image',
-    videoDuration:
-      Number(firstMatch(html, /duration_millis:(\d+)/)) / 1000 || 0,
-    videoUrl: image ? videoUrl : '',
+    mediaType: isVideo ? 'video' : 'image',
+    videoDuration: isVideo
+      ? Number(firstMatch(html, /duration_millis:(\d+)/)) / 1000 || 0
+      : 0,
+    videoUrl: isVideo ? videoUrl : '',
     location: '',
     caption,
     likes: count('favorite_count'),
